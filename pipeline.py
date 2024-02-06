@@ -308,11 +308,18 @@ def process_and_predict(dcm_path):
     t_test = A.Resize(704, 1056, interpolation=cv2.INTER_NEAREST)
     single_test = DicomTest(dcm_path, transform=t_test)
     image = single_test.get_data()
-
+    
+    # calculate the image total area in cm
+    dicom_area = calculate_dicom_image_area(dcm_path)
     # 这里仅需要返回百分比和图像，不需要保存图像
     fig, pred_percentage = plot_segmented_mask_and_ground_truth([image], model, top_n=1)
+    
+    # calculate the area in cm for each class
+    pred_area = []
+    for cla in pred_percentage:
+        pred_area.append(cla * dicom_area)
 
-    return fig, pred_percentage
+    return fig, pred_percentage, pred_area
 
 
 # pred_mask = predict_image_mask_miou(model, image)
