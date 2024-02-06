@@ -318,8 +318,12 @@ def process_and_predict(dcm_path):
     pred_area = []
     for cla in pred_percentage:
         pred_area.append(cla * dicom_area)
+    
+    
+    # the segmented_array s 512 * 512 pred mask
+    #hu_value = calculate_hu_values_by_segment(dcm_path, segmented_array)
 
-    return fig, pred_percentage, pred_area
+    return fig, pred_percentage, pred_area #, hu_value
 
 
 # pred_mask = predict_image_mask_miou(model, image)
