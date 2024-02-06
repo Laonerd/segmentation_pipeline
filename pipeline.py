@@ -93,6 +93,86 @@ class DicomTest:
         return img
 
 
+def calculate_dicom_image_area(dicom_file_path):
+    """
+    Calculate the area of a DICOM image in square centimeters.
+
+    Parameters:
+    dicom_file_path (str): The file path to the DICOM image.
+
+    Returns:
+    float: The area of the DICOM image in square centimeters.
+    """
+    # Load the DICOM file
+    ds = pydicom.dcmread(dicom_file_path)
+
+    # Ensure Pixel Spacing attribute is present
+    if 'PixelSpacing' not in ds:
+        raise ValueError("DICOM file does not contain 'Pixel Spacing' information.")
+
+    # Get pixel spacing values (returns a list [row spacing, column spacing] in mm)
+    pixel_spacing = ds.PixelSpacing
+
+    # Convert pixel spacing from mm to cm
+    pixel_spacing_cm = [float(spacing) / 10 for spacing in pixel_spacing]
+
+    # Get the number of rows and columns in the image
+    num_rows = ds.Rows
+    num_columns = ds.Columns
+
+    # Calculate the width and height in cm
+    width_cm = num_columns * pixel_spacing_cm[1]  # Column spacing for width
+    height_cm = num_rows * pixel_spacing_cm[0]  # Row spacing for height
+
+    # Calculate and return the area in square cm
+    area_cm2 = width_cm * height_cm
+    return area_cm2
+
+# calculate the hu value
+def calculate_hu_values_by_segment(dicom_path, segmented_array):
+    """
+    Calculate the average HU values for each segment in a DICOM image.
+    
+    Parameters:
+    - dicom_path: Path to the DICOM file.
+    - segmented_array: A 2D numpy array with segmentation results.
+    
+    Returns:
+    A dictionary with segment values as keys and average HU values as values.
+    """
+    # Load the DICOM file
+    ds = pydicom.dcmread(dicom_path)
+    
+    # Ensure the DICOM file has pixel data
+    if 'PixelData' not in ds:
+        raise ValueError("DICOM file does not contain pixel data.")
+    
+    # Convert pixel data to a numpy array
+    image_array = ds.pixel_array.astype(np.float64)
+    
+    # Apply the rescale slope and intercept to convert to HU
+    rescale_slope = ds.RescaleSlope if 'RescaleSlope' in ds else 1
+    rescale_intercept = ds.RescaleIntercept if 'RescaleIntercept' in ds else 0
+    hu_image = image_array * rescale_slope + rescale_intercept
+    
+    # Calculate average HU values for each segment
+    unique_segments = np.unique(segmented_array)
+    average_hu_values = {}
+    
+    for segment in unique_segments:
+        mask = segmented_array == segment
+        segment_hu_values = hu_image[mask]
+        
+        # Optional: Filter or handle unexpected HU values
+        # For example, exclude HU values outside expected range if necessary
+        # segment_hu_values = segment_hu_values[(segment_hu_values >= HU_MIN) & (segment_hu_values <= HU_MAX)]
+        
+        average_hu = np.mean(segment_hu_values) if segment_hu_values.size > 0 else 'N/A'
+        average_hu_values[segment] = average_hu
+    
+    return average_hu_values
+
+
 # Usage example
 t_test = A.Resize(704, 1056, interpolation=cv2.INTER_NEAREST)
 
